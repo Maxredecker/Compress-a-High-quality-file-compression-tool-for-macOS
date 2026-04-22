@@ -1,0 +1,29 @@
+{
+  "name": "compress",
+  "version": "1.0.0",
+  "description": "Local file compression toolkit for macOS — drop files, get optimized versions in multiple formats",
+  "type": "module",
+  "scripts": {
+    "watch": "node watch.mjs",
+    "compress": "node compress.mjs"
+  },
+  "keywords": [
+    "compression",
+    "image",
+    "pdf",
+    "svg",
+    "webp",
+    "avif",
+    "jxl",
+    "jpeg-xl",
+    "mozjpeg",
+    "sharp",
+    "macos"
+  ],
+  "author": "Max Redecker",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "^0.34.5",
+    "svgo": "^4.0.0"
+  }
+}
