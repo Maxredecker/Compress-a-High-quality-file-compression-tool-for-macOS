@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Compress</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', -apple-system, system-ui, sans-serif; background: #f5f0eb; color: #3d3529; height: 100vh; display: flex; flex-direction: column; -webkit-app-region: drag; user-select: none; overflow: hidden; }
+  .titlebar { height: 52px; flex-shrink: 0; }
+  .container { flex: 1; display: flex; flex-direction: column; padding: 0 20px 16px; -webkit-app-region: no-drag; overflow: hidden; gap: 12px; }
+
+  /* Drop zone */
+  .dropzone { border: 2px dashed #c9b99a; border-radius: 20px; padding: 36px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.25s ease; background: rgba(255,255,255,0.4); flex-shrink: 0; }
+  .dropzone:hover, .dropzone.dragover { border-color: #a68b5b; background: rgba(255,255,255,0.7); }
+  .dropzone.compact { padding: 14px 20px; flex-direction: row; gap: 10px; border-radius: 14px; }
+  .dropzone.compact .drop-icon { width: 20px; height: 20px; }
+  .dropzone.compact .drop-text { font-size: 13px; }
+  .dropzone.compact .drop-text br, .dropzone.compact .formats { display: none; }
+  .drop-icon { width: 36px; height: 36px; color: #a68b5b; }
+  .drop-text { font-size: 15px; color: #8a7e6b; text-align: center; line-height: 1.5; }
+  .drop-text strong { color: #5c5244; font-weight: 500; }
+  .formats { font-size: 11px; color: #b5a88e; letter-spacing: 0.5px; }
+
+  /* Results */
+  .results-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+  .results-wrap::-webkit-scrollbar { width: 5px; }
+  .results-wrap::-webkit-scrollbar-thumb { background: #d4c9b8; border-radius: 3px; }
+  .result-item { background: #fff; border-radius: 14px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; animation: fadeIn 0.35s ease; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; box-shadow: 0 1px 3px rgba(90,70,40,0.06); }
+  .result-item:hover { background: #faf6f1; box-shadow: 0 2px 8px rgba(90,70,40,0.1); }
+  .result-thumb { width: 44px; height: 44px; border-radius: 10px; background: #ebe5dc; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .result-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb-icon { font-size: 14px; color: #b5a88e; font-weight: 600; }
+  .result-content { flex: 1; min-width: 0; }
+  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; gap: 6px; }
+  .result-filename { font-size: 13px; font-weight: 500; color: #3d3529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .result-original { font-size: 11px; color: #b5a88e; flex-shrink: 0; }
+  .result-best { font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .result-formats { display: flex; flex-wrap: wrap; gap: 5px; }
+  .format-tag { font-size: 10px; background: #f5f0eb; border: 1px solid #e8dfcf; border-radius: 6px; padding: 2px 7px; color: #8a7e6b; }
+  .format-tag .fmt-name { color: #5c5244; font-weight: 600; }
+  .result-error { font-size: 11px; color: #c75a3a; }
+  .result-spinner { width: 16px; height: 16px; border: 2px solid #e8dfcf; border-top-color: #a68b5b; border-radius: 50%; animation: spin 0.9s linear infinite; flex-shrink: 0; }
+
+  /* Footer */
+  .footer { display: flex; align-items: center; gap: 8px; padding: 10px 14px; flex-shrink: 0; background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(90,70,40,0.08); }
+  .output-dir { flex: 1; font-size: 12px; color: #8a7e6b; cursor: pointer; transition: color 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .output-dir:hover { color: #5c5244; }
+  .btn { font-size: 12px; font-weight: 500; color: #5c5244; background: #f5f0eb; border: 1px solid #ddd3c2; border-radius: 8px; padding: 6px 12px; cursor: pointer; transition: all 0.15s; -webkit-app-region: no-drag; white-space: nowrap; font-family: inherit; }
+  .btn:hover { background: #ebe5dc; border-color: #c9b99a; }
+
+  /* Modal shared */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; z-index: 100; -webkit-app-region: no-drag; }
+  .modal { background: #faf6f1; border-radius: 18px; padding: 24px; max-width: 460px; width: 90%; box-shadow: 0 8px 32px rgba(90,70,40,0.15); max-height: 82vh; overflow-y: auto; }
+  .modal::-webkit-scrollbar { width: 5px; }
+  .modal::-webkit-scrollbar-thumb { background: #d4c9b8; border-radius: 3px; }
+  .modal h2 { font-size: 15px; color: #3d3529; margin-bottom: 16px; font-weight: 600; }
+  .modal h3 { font-size: 12px; color: #a68b5b; margin: 16px 0 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .modal p, .modal li { font-size: 12px; color: #8a7e6b; line-height: 1.6; }
+  .modal ul { padding-left: 16px; }
+  .modal li { margin-bottom: 3px; }
+  .modal code { background: #ebe5dc; padding: 1px 5px; border-radius: 4px; font-size: 11px; color: #5c5244; }
+  .modal-close { margin-top: 16px; width: 100%; font-size: 13px; font-weight: 500; color: #5c5244; background: #ebe5dc; border: none; border-radius: 10px; padding: 10px; cursor: pointer; transition: background 0.15s; font-family: inherit; }
+  .modal-close:hover { background: #ddd3c2; }
+
+  /* Settings */
+  .setting-group { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .setting-group-title { font-size: 13px; font-weight: 600; color: #3d3529; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .setting-group-icon { font-size: 15px; }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+  .setting-label { font-size: 12px; color: #5c5244; flex: 1; }
+  .setting-hint { font-size: 11px; color: #b5a88e; margin-top: 2px; line-height: 1.4; }
+  .setting-value { font-size: 12px; color: #a68b5b; font-weight: 500; min-width: 36px; text-align: right; }
+  input[type=range] { -webkit-appearance: none; width: 140px; height: 4px; background: #e8dfcf; border-radius: 2px; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: #a68b5b; border-radius: 50%; cursor: pointer; }
+  .slider-labels { display: flex; justify-content: space-between; font-size: 10px; color: #b5a88e; margin-top: 4px; width: 140px; }
+  .toggle { position: relative; width: 36px; height: 20px; background: #ddd3c2; border-radius: 10px; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: #a68b5b; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+  .toggle.on::after { transform: translateX(16px); }
+  select { font-family: inherit; font-size: 12px; color: #5c5244; background: #f5f0eb; border: 1px solid #ddd3c2; border-radius: 6px; padding: 4px 8px; cursor: pointer; outline: none; }
+  .number-input { font-family: inherit; font-size: 12px; color: #5c5244; background: #f5f0eb; border: 1px solid #ddd3c2; border-radius: 6px; padding: 4px 8px; width: 72px; text-align: right; outline: none; }
+  .number-input:focus { border-color: #a68b5b; }
+
+  /* Advanced toggle */
+  .advanced-divider { display: flex; align-items: center; gap: 10px; padding: 8px 0 4px; cursor: pointer; }
+  .advanced-divider .line { flex: 1; height: 1px; background: #e8dfcf; }
+  .advanced-label { font-size: 11px; color: #b5a88e; font-weight: 500; transition: color 0.15s; white-space: nowrap; }
+  .advanced-divider:hover .advanced-label { color: #8a7e6b; }
+  .advanced-arrow { font-size: 10px; color: #b5a88e; transition: transform 0.2s; }
+  .advanced-arrow.open { transform: rotate(180deg); }
+  .advanced-content { overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease; max-height: 0; opacity: 0; }
+  .advanced-content.open { max-height: 600px; opacity: 1; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="titlebar"></div>
+<div class="container">
+  <div id="dropzone" class="dropzone">
+    <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M12 16V4m0 0L8 8m4-4l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 15v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="drop-text"><strong>Drop files or click to select</strong><br>Add more anytime</div>
+    <div class="formats">JPG · PNG · AVIF · SVG · PDF</div>
+  </div>
+  <div id="results-wrap" class="results-wrap hidden"></div>
+  <div class="footer">
+    <div id="output-dir" class="output-dir"></div>
+    <button id="btn-clear" class="btn hidden">Clear</button>
+    <button id="btn-settings" class="btn">Settings</button>
+    <button id="btn-info" class="btn">Info</button>
+    <button id="btn-output" class="btn">Output ▾</button>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div id="settings-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>Settings</h2>
+
+    <!-- IMAGES -->
+    <div class="setting-group">
+      <div class="setting-group-title"><span class="setting-group-icon">🖼</span> Images</div>
+
+      <div class="setting-row">
+        <span class="setting-label">Compression</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="range" id="img-quality" min="30" max="100" value="80">
+            <span class="setting-value" id="img-quality-val">80</span>
+          </div>
+          <div class="slider-labels"><span>Smaller file</span><span>Better quality</span></div>
+        </div>
+      </div>
+      <div class="setting-row"><span class="setting-label">JPG</span><div id="fmt-jpg" class="toggle on"></div></div>
+      <div class="setting-row"><span class="setting-label">WebP</span><div id="fmt-webp" class="toggle on"></div></div>
+      <div class="setting-row"><span class="setting-label">AVIF</span><div id="fmt-avif" class="toggle on"></div></div>
+      <div class="setting-row"><span class="setting-label">JXL</span><div id="fmt-jxl" class="toggle on"></div></div>
+
+      <!-- Advanced image settings -->
+      <div class="advanced-divider" id="img-adv-toggle">
+        <div class="line"></div>
+        <span class="advanced-label">Advanced</span>
+        <span class="advanced-arrow" id="img-adv-arrow">▾</span>
+        <div class="line"></div>
+      </div>
+      <div class="advanced-content" id="img-adv-content">
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Max dimensions</div>
+            <div class="setting-hint">Resize images larger than this (px). Leave empty for original size.</div>
+          </div>
+          <input type="number" id="img-max-dim" class="number-input" placeholder="No limit" min="100" step="100">
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Strip metadata</div>
+            <div class="setting-hint">Remove EXIF, GPS, camera info. Reduces file size and protects privacy.</div>
+          </div>
+          <div id="img-strip-meta" class="toggle on"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Progressive JPEG</div>
+            <div class="setting-hint">Loads a blurry preview first, then sharpens. Better perceived speed on slow connections.</div>
+          </div>
+          <div id="img-progressive" class="toggle on"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">JXL effort</div>
+            <div class="setting-hint">Higher = smaller files but slower. 7 is a good balance.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="range" id="jxl-effort" min="1" max="9" value="7">
+            <span class="setting-value" id="jxl-effort-val">7</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VECTORS -->
+    <div class="setting-group">
+      <div class="setting-group-title"><span class="setting-group-icon">✏️</span> Vectors</div>
+      <div class="setting-row"><span class="setting-label">Optimize SVG</span><div id="svg-enabled" class="toggle on"></div></div>
+
+      <div class="advanced-divider" id="svg-adv-toggle">
+        <div class="line"></div>
+        <span class="advanced-label">Advanced</span>
+        <span class="advanced-arrow" id="svg-adv-arrow">▾</span>
+        <div class="line"></div>
+      </div>
+      <div class="advanced-content" id="svg-adv-content">
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Remove dimensions</div>
+            <div class="setting-hint">Strips width/height attributes for responsive scaling. Keeps viewBox.</div>
+          </div>
+          <div id="svg-remove-dims" class="toggle"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Prefix IDs</div>
+            <div class="setting-hint">Adds a unique prefix to IDs. Prevents conflicts when using multiple SVGs on one page.</div>
+          </div>
+          <div id="svg-prefix-ids" class="toggle"></div>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Minify IDs</div>
+            <div class="setting-hint">Shortens long ID names to save bytes.</div>
+          </div>
+          <div id="svg-minify-ids" class="toggle on"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF -->
+    <div class="setting-group">
+      <div class="setting-group-title"><span class="setting-group-icon">📄</span> PDF</div>
+      <div class="setting-row">
+        <span class="setting-label">Quality</span>
+        <select id="pdf-preset">
+          <option value="screen">Screen — smallest, 72dpi</option>
+          <option value="ebook">Ebook — good for screens, 150dpi</option>
+          <option value="printer" selected>Print — sharp photos, 300dpi</option>
+          <option value="prepress">Prepress — maximum quality</option>
+        </select>
+      </div>
+
+      <div class="advanced-divider" id="pdf-adv-toggle">
+        <div class="line"></div>
+        <span class="advanced-label">Advanced</span>
+        <span class="advanced-arrow" id="pdf-adv-arrow">▾</span>
+        <div class="line"></div>
+      </div>
+      <div class="advanced-content" id="pdf-adv-content">
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Convert to grayscale</div>
+            <div class="setting-hint">Removes all color. Good for text-heavy documents to reduce size further.</div>
+          </div>
+          <div id="pdf-grayscale" class="toggle"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="modal-close" id="settings-save">Save</button>
+  </div>
+</div>
+
+<!-- Info modal -->
+<div id="info-overlay" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>Compress</h2>
+    <p>Fast, local file compression. Everything runs on your Mac — nothing leaves your computer.</p>
+    <h3>Formats</h3>
+    <ul>
+      <li><strong>JPG / PNG / AVIF</strong> → JPG, WebP, AVIF, JXL</li>
+      <li><strong>SVG</strong> → optimized SVG (SVGO)</li>
+      <li><strong>PDF</strong> → compressed PDF (Ghostscript)</li>
+    </ul>
+    <h3>Optional tools</h3>
+    <p>For JXL output: <code>brew install jpeg-xl</code><br>For PDF compression: <code>brew install ghostscript</code></p>
+    <h3>Open source licenses</h3>
+    <ul>
+      <li><strong>sharp</strong> — Apache-2.0 (image processing)</li>
+      <li><strong>SVGO</strong> — MIT (SVG optimization)</li>
+      <li><strong>Electron</strong> — MIT (app framework)</li>
+      <li><strong>cjxl</strong> — BSD-3-Clause (JPEG XL encoder)</li>
+      <li><strong>Ghostscript</strong> — AGPL-3.0 (PDF, user-installed)</li>
+      <li><strong>DM Sans</strong> — OFL-1.1 (typeface by Colophon Foundry)</li>
+    </ul>
+    <h3>Credits</h3>
+    <p>Built by Max Redecker · MIT License</p>
+    <button class="modal-close" onclick="document.getElementById('info-overlay').classList.add('hidden')">Close</button>
+  </div>
+</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const resultsWrap = document.getElementById('results-wrap');
+  const outputDirEl = document.getElementById('output-dir');
+  const btnClear = document.getElementById('btn-clear');
+  const btnOutput = document.getElementById('btn-output');
+  const btnSettings = document.getElementById('btn-settings');
+  const btnInfo = document.getElementById('btn-info');
+  const settingsOverlay = document.getElementById('settings-overlay');
+  const infoOverlay = document.getElementById('info-overlay');
+  let outputDir = '';
+  let hasResults = false;
+  let settings = {};
+  const extIcons = { '.pdf': 'PDF', '.svg': 'SVG' };
+  const allowedExts = ['.jpg','.jpeg','.png','.avif','.svg','.pdf'];
+
+  function sanitize(s) { return s.replace(/[^a-zA-Z0-9_-]/g, '_'); }
+  function formatSize(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
+
+  // --- Advanced toggles ---
+  ['img', 'svg', 'pdf'].forEach(prefix => {
+    const toggle = document.getElementById(prefix + '-adv-toggle');
+    const content = document.getElementById(prefix + '-adv-content');
+    const arrow = document.getElementById(prefix + '-adv-arrow');
+    toggle.addEventListener('click', () => {
+      content.classList.toggle('open');
+      arrow.classList.toggle('open');
+    });
+  });
+
+  // --- Init ---
+  (async () => {
+    outputDir = await window.compress.getDefaultOutputDir();
+    outputDirEl.textContent = outputDir.replace(/^\/Users\/[^\/]+/, '~');
+    settings = await window.compress.loadSettings();
+    applySettingsToUI();
+  })();
+
+  // --- Settings UI ---
+  function applySettingsToUI() {
+    const img = settings.images || {};
+    const fmt = img.formats || {};
+    document.getElementById('img-quality').value = img.quality || 80;
+    document.getElementById('img-quality-val').textContent = img.quality || 80;
+    setToggle('fmt-jpg', fmt.jpg !== false);
+    setToggle('fmt-webp', fmt.webp !== false);
+    setToggle('fmt-avif', fmt.avif !== false);
+    setToggle('fmt-jxl', fmt.jxl !== false);
+    // Advanced image
+    const maxDim = img.maxDimension;
+    document.getElementById('img-max-dim').value = maxDim || '';
+    setToggle('img-strip-meta', img.stripMetadata !== false);
+    setToggle('img-progressive', img.progressive !== false);
+    document.getElementById('jxl-effort').value = img.jxlEffort || 7;
+    document.getElementById('jxl-effort-val').textContent = img.jxlEffort || 7;
+
+    const vec = settings.vectors || {};
+    setToggle('svg-enabled', vec.enabled !== false);
+    setToggle('svg-remove-dims', !!vec.removeDimensions);
+    setToggle('svg-prefix-ids', !!vec.prefixIds);
+    setToggle('svg-minify-ids', vec.minifyIds !== false);
+
+    const pdf = settings.pdfs || {};
+    document.getElementById('pdf-preset').value = pdf.preset || 'printer';
+    setToggle('pdf-grayscale', !!pdf.grayscale);
+  }
+
+  function setToggle(id, on) {
+    const el = document.getElementById(id);
+    if (on) el.classList.add('on'); else el.classList.remove('on');
+  }
+
+  function readSettingsFromUI() {
+    const maxDimVal = document.getElementById('img-max-dim').value;
+    return {
+      images: {
+        quality: parseInt(document.getElementById('img-quality').value),
+        formats: {
+          jpg: document.getElementById('fmt-jpg').classList.contains('on'),
+          webp: document.getElementById('fmt-webp').classList.contains('on'),
+          avif: document.getElementById('fmt-avif').classList.contains('on'),
+          jxl: document.getElementById('fmt-jxl').classList.contains('on'),
+        },
+        maxDimension: maxDimVal ? parseInt(maxDimVal) : null,
+        stripMetadata: document.getElementById('img-strip-meta').classList.contains('on'),
+        progressive: document.getElementById('img-progressive').classList.contains('on'),
+        jxlEffort: parseInt(document.getElementById('jxl-effort').value),
+      },
+      vectors: {
+        enabled: document.getElementById('svg-enabled').classList.contains('on'),
+        removeDimensions: document.getElementById('svg-remove-dims').classList.contains('on'),
+        prefixIds: document.getElementById('svg-prefix-ids').classList.contains('on'),
+        minifyIds: document.getElementById('svg-minify-ids').classList.contains('on'),
+      },
+      pdfs: {
+        preset: document.getElementById('pdf-preset').value,
+        grayscale: document.getElementById('pdf-grayscale').classList.contains('on'),
+      }
+    };
+  }
+
+  // Toggles
+  document.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', () => t.classList.toggle('on')));
+
+  // Sliders
+  document.getElementById('img-quality').addEventListener('input', (e) => document.getElementById('img-quality-val').textContent = e.target.value);
+  document.getElementById('jxl-effort').addEventListener('input', (e) => document.getElementById('jxl-effort-val').textContent = e.target.value);
+
+  // Save
+  document.getElementById('settings-save').addEventListener('click', async () => {
+    settings = readSettingsFromUI();
+    await window.compress.saveSettings(settings);
+    settingsOverlay.classList.add('hidden');
+  });
+
+  // Modal handlers
+  btnSettings.addEventListener('click', () => settingsOverlay.classList.remove('hidden'));
+  btnInfo.addEventListener('click', () => infoOverlay.classList.remove('hidden'));
+  settingsOverlay.addEventListener('click', (e) => { if (e.target === settingsOverlay) settingsOverlay.classList.add('hidden'); });
+  infoOverlay.addEventListener('click', (e) => { if (e.target === infoOverlay) infoOverlay.classList.add('hidden'); });
+
+  // Output dir
+  btnOutput.addEventListener('click', async () => {
+    const dir = await window.compress.selectOutputDir();
+    if (dir) { outputDir = dir; outputDirEl.textContent = outputDir.replace(/^\/Users\/[^\/]+/, '~'); }
+  });
+
+  // File selection
+  dropzone.addEventListener('click', async () => {
+    const filePaths = await window.compress.selectFiles();
+    if (filePaths.length > 0) processFiles(filePaths);
+  });
+
+  // Drag and drop
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  document.addEventListener('dragover', (e) => e.preventDefault());
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    const files = Array.from(e.dataTransfer.files);
+    const paths = files.map(f => window.compress.getPathForFile(f)).filter(Boolean);
+    const valid = paths.filter(p => allowedExts.includes('.' + p.split('.').pop().toLowerCase()));
+    if (valid.length > 0) processFiles(valid);
+  });
+
+  async function processFiles(filePaths) {
+    if (!hasResults) {
+      resultsWrap.classList.remove('hidden');
+      btnClear.classList.remove('hidden');
+      dropzone.classList.add('compact');
+      hasResults = true;
+    }
+    const currentSettings = readSettingsFromUI();
+    const promises = filePaths.map(async (fp) => {
+      const name = fp.split('/').pop();
+      const ext = '.' + name.split('.').pop().toLowerCase();
+      const id = 'r-' + sanitize(name) + '-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+      const item = document.createElement('div');
+      item.className = 'result-item'; item.id = id;
+      const thumbDiv = document.createElement('div');
+      thumbDiv.className = 'result-thumb';
+      const icon = extIcons[ext];
+      thumbDiv.innerHTML = icon ? '<span class="thumb-icon">' + icon + '</span>' : '<span class="thumb-icon">···</span>';
+      const content = document.createElement('div');
+      content.className = 'result-content';
+      content.innerHTML = '<div class="result-header"><span class="result-filename">' + name + '</span><div class="result-spinner"></div></div>';
+      item.appendChild(thumbDiv); item.appendChild(content);
+      resultsWrap.appendChild(item);
+      resultsWrap.scrollTop = resultsWrap.scrollHeight;
+      if (!icon) { window.compress.getThumbnail(fp).then(url => { if (url) thumbDiv.innerHTML = '<img src="' + url + '" />'; }); }
+
+      const result = await window.compress.compressFile(fp, outputDir, currentSettings);
+
+      if (result.error) {
+        content.innerHTML = '<div class="result-header"><span class="result-filename">' + name + '</span></div><div class="result-error">' + result.error + '</div>';
+      } else {
+        const fmts = (result.formats || []).map(f => '<span class="format-tag"><span class="fmt-name">' + f.format + '</span> ' + f.sizeFormatted + '</span>').join('');
+        const best = result.bestSaved || 0;
+        const color = best > 50 ? '#6b8f5e' : best > 20 ? '#8f8b5e' : '#b5a88e';
+        const badge = best > 0 ? '<span class="result-best" style="color:' + color + '">−' + best + '%</span>' : '<span class="result-best" style="color:#b5a88e">—</span>';
+        const origSize = result.originalSize ? formatSize(result.originalSize) : '';
+        content.innerHTML = '<div class="result-header"><span class="result-filename">' + name + '</span><span class="result-original">' + origSize + '</span>' + badge + '</div>' + (result.formats && result.formats.length > 0 ? '<div class="result-formats">' + fmts + '</div>' : '');
+      }
+      item.addEventListener('click', () => window.compress.openFolder(outputDir));
+    });
+    await Promise.all(promises);
+  }
+
+  btnClear.addEventListener('click', () => {
+    resultsWrap.innerHTML = '';
+    resultsWrap.classList.add('hidden');
+    btnClear.classList.add('hidden');
+    dropzone.classList.remove('compact');
+    hasResults = false;
+  });
+</script>
+</body>
+</html>

@@ -2,8 +2,13 @@
   "name": "compress",
   "version": "1.0.0",
   "description": "Local file compression toolkit for macOS — drop files, get optimized versions in multiple formats",
-  "type": "module",
+  "main": "main.js",
   "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac zip",
+    "build:dmg": "electron-builder --mac dmg",
+    "build:dir": "electron-builder --mac dir",
+    "test": "node --test",
     "watch": "node watch.mjs",
     "compress": "node compress.mjs"
   },
@@ -25,5 +30,31 @@
   "dependencies": {
     "sharp": "^0.34.5",
     "svgo": "^4.0.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.maxredecker.compress",
+    "productName": "Compress",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": "dmg"
+    },
+    "dmg": {
+      "title": "Compress",
+      "contents": [
+        { "x": 130, "y": 220 },
+        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+      ]
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "compress-engine.mjs",
+      "node_modules/**/*"
+    ]
   }
 }
