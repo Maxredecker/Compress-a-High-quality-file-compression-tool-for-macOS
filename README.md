@@ -65,11 +65,18 @@ node compress.mjs ~/Downloads/compress
 | SVG | SVG (optimized) | SVGO |
 | PDF | PDF (compressed) | Ghostscript |
 
-## Dependencies
+## Open-source modules and licenses
 
-- [sharp](https://sharp.pixelplumbing.com/) — image processing
-- [svgo](https://svgo.dev/) — SVG optimization
-- Optional: `jpeg-xl` (`cjxl`), `ghostscript`, `terminal-notifier`
+| Module | Usage in this project | License | Links |
+|-------|------------------------|---------|-------|
+| `sharp` | Image conversion and compression (JPG/PNG/WebP/AVIF) | Apache-2.0 | [Project](https://sharp.pixelplumbing.com/), [License](https://github.com/lovell/sharp/blob/main/LICENSE) |
+| `svgo` | SVG optimization | MIT | [Project](https://svgo.dev/), [License](https://github.com/svg/svgo/blob/main/LICENSE) |
+| `electron` | Desktop app runtime for the GUI | MIT | [Project](https://www.electronjs.org/), [License](https://github.com/electron/electron/blob/main/LICENSE) |
+| `electron-builder` | Packaging the app for macOS builds | MIT | [Project](https://www.electron.build/), [License](https://github.com/electron-userland/electron-builder/blob/master/LICENSE) |
+| `jpeg-xl` (`cjxl`) *(optional system dependency)* | JPEG XL encoding output | BSD-3-Clause | [Project](https://jpeg.org/jpegxl/), [License](https://github.com/libjxl/libjxl/blob/main/LICENSE) |
+| `ghostscript` *(optional system dependency)* | PDF compression | AGPL-3.0-or-later | [Project](https://www.ghostscript.com/), [License](https://ghostscript.com/licensing/) |
+| `terminal-notifier` *(optional system dependency)* | Native macOS notifications in CLI flow | MIT | [Project](https://github.com/julienXX/terminal-notifier), [License](https://github.com/julienXX/terminal-notifier/blob/master/LICENSE) |
+| `DM Sans` | UI typeface in GUI | OFL-1.1 | [Project](https://fonts.google.com/specimen/DM+Sans), [License](https://openfontlicense.org/) |
 
 ## License
 
