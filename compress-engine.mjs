@@ -61,6 +61,7 @@ export function normalizeSettings(settings) {
     images: {
       quality: Number(images.quality) || JPEG_QUALITY,
       formats: {
+        png: images.formats?.png !== false,
         jpg: images.formats?.jpg !== false,
         webp: images.formats?.webp !== false,
         avif: images.formats?.avif !== false,
@@ -186,7 +187,7 @@ async function compressSvg(input, file, outputDir, vecSettings) {
 // --- Images ---
 async function compressImage(input, file, outputDir, imgSettings) {
   const quality = (imgSettings && imgSettings.quality) || 80;
-  const enabledFormats = (imgSettings && imgSettings.formats) || { jpg: true, webp: true, avif: true, jxl: true };
+  const enabledFormats = (imgSettings && imgSettings.formats) || { png: true, jpg: true, webp: true, avif: true, jxl: true };
   const maxDimension = imgSettings?.maxDimension || null;
   const keepMetadata = imgSettings?.stripMetadata === false;
   const progressive = imgSettings?.progressive !== false;
@@ -195,8 +196,7 @@ async function compressImage(input, file, outputDir, imgSettings) {
 
   const metadata = await sharp(input).metadata();
   const baseName = file.replace(/\.(png|jpg|jpeg|avif)$/i, '');
-  const isPng = /\.png$/i.test(file);
-  const hasAlpha = metadata.hasAlpha && isPng;
+  const hasAlpha = !!metadata.hasAlpha;
   const originalSize = (await stat(input)).size;
   const formats = [];
   const basePipeline = sharp(input).rotate();
@@ -213,8 +213,8 @@ async function compressImage(input, file, outputDir, imgSettings) {
     return keepMetadata ? maybeResize.clone().withMetadata() : maybeResize.clone();
   }
 
-  // PNG (only if transparency)
-  if (hasAlpha) {
+  // PNG
+  if (enabledFormats.png) {
     const pngOut = join(outputDir, `${baseName}.png`);
     await withOutputPipeline().png({ palette: true, quality, compressionLevel: 9, effort: 10, progressive }).toFile(pngOut);
     const size = (await stat(pngOut)).size;
@@ -225,10 +225,12 @@ async function compressImage(input, file, outputDir, imgSettings) {
     }
   }
 
-  // JPEG (only if no transparency)
-  if (!hasAlpha && enabledFormats.jpg) {
+  // JPEG
+  // For images with alpha, flatten onto white so JPG output still works when selected.
+  if (enabledFormats.jpg) {
     const jpgOut = join(outputDir, `${baseName}.jpg`);
-    await withOutputPipeline().jpeg({ quality, mozjpeg: true, progressive }).toFile(jpgOut);
+    const jpgPipeline = hasAlpha ? withOutputPipeline().flatten({ background: '#ffffff' }) : withOutputPipeline();
+    await jpgPipeline.jpeg({ quality, mozjpeg: true, progressive }).toFile(jpgOut);
     const size = (await stat(jpgOut)).size;
     if (size < originalSize) {
       formats.push({ format: 'JPG', size, sizeFormatted: formatSize(size), saved: Math.round((1 - size / originalSize) * 100) });

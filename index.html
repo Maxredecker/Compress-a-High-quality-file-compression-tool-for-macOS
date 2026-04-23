@@ -138,6 +138,7 @@
         </div>
       </div>
       <div class="setting-row"><span class="setting-label">JPG</span><div id="fmt-jpg" class="toggle on"></div></div>
+      <div class="setting-row"><span class="setting-label">PNG</span><div id="fmt-png" class="toggle on"></div></div>
       <div class="setting-row"><span class="setting-label">WebP</span><div id="fmt-webp" class="toggle on"></div></div>
       <div class="setting-row"><span class="setting-label">AVIF</span><div id="fmt-avif" class="toggle on"></div></div>
       <div class="setting-row"><span class="setting-label">JXL</span><div id="fmt-jxl" class="toggle on"></div></div>
@@ -327,6 +328,7 @@
     document.getElementById('img-quality').value = img.quality || 80;
     document.getElementById('img-quality-val').textContent = img.quality || 80;
     setToggle('fmt-jpg', fmt.jpg !== false);
+    setToggle('fmt-png', fmt.png !== false);
     setToggle('fmt-webp', fmt.webp !== false);
     setToggle('fmt-avif', fmt.avif !== false);
     setToggle('fmt-jxl', fmt.jxl !== false);
@@ -361,6 +363,7 @@
         quality: parseInt(document.getElementById('img-quality').value),
         formats: {
           jpg: document.getElementById('fmt-jpg').classList.contains('on'),
+          png: document.getElementById('fmt-png').classList.contains('on'),
           webp: document.getElementById('fmt-webp').classList.contains('on'),
           avif: document.getElementById('fmt-avif').classList.contains('on'),
           jxl: document.getElementById('fmt-jxl').classList.contains('on'),

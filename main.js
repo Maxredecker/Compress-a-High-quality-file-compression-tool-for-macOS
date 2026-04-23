@@ -9,7 +9,7 @@ const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 const defaultSettings = {
   images: {
     quality: 80,
-    formats: { jpg: true, webp: true, avif: true, jxl: true },
+    formats: { png: true, jpg: true, webp: true, avif: true, jxl: true },
     maxDimension: null,
     stripMetadata: true,
     progressive: true,
