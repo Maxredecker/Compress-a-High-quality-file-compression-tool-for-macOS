@@ -1,15 +1,15 @@
 # Compress
 
-High-quality file compression tool for macOS.
+High-quality file compression tool for macOS. Drop images, SVGs, and PDFs — get back smaller files in all the best formats.
 
 ## Two versions in this repository
 
 This project intentionally keeps both variants:
 
-- **CLI (non-GUI)**: terminal-based workflow via `watch.mjs` and `compress.mjs`.
-- **GUI (Electron app)**: drag-and-drop desktop app with settings and previews.
+- **GUI (Electron app)**: drag-and-drop desktop app with a native macOS look and feel.
+- **CLI**: terminal-based workflow via `watch.mjs` and `compress.mjs`.
 
-The non-GUI version remains supported and is preserved alongside the GUI version.
+The CLI version remains supported and is preserved alongside the GUI version.
 
 ## GUI quick start
 
@@ -76,7 +76,6 @@ node compress.mjs ~/Downloads/compress
 | `jpeg-xl` (`cjxl`) *(optional system dependency)* | JPEG XL encoding output | BSD-3-Clause | [Project](https://jpeg.org/jpegxl/), [License](https://github.com/libjxl/libjxl/blob/main/LICENSE) |
 | `ghostscript` *(optional system dependency)* | PDF compression | AGPL-3.0-or-later | [Project](https://www.ghostscript.com/), [License](https://ghostscript.com/licensing/) |
 | `terminal-notifier` *(optional system dependency)* | Native macOS notifications in CLI flow | MIT | [Project](https://github.com/julienXX/terminal-notifier), [License](https://github.com/julienXX/terminal-notifier/blob/master/LICENSE) |
-| `DM Sans` | UI typeface in GUI | OFL-1.1 | [Project](https://fonts.google.com/specimen/DM+Sans), [License](https://openfontlicense.org/) |
 
 ## License
 
